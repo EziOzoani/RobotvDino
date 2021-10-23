@@ -1,0 +1,41 @@
+html,
+body {
+    height: 100vh;
+    width: 100vw;
+    padding: 0;
+    margin: 0;
+}
+
+main {
+    grid-template-columns: repeat(20, 1fr);
+    grid-template-rows: repeat(20, 1fr);
+    height: calc(100vh - 6em);
+    width: calc(100vw - 6em);
+    position: fixed;
+    display: grid;
+    margin: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    top: 0;
+    gap: 0;
+}
+
+main div {
+    border: 1px solid black;
+    justify-content: center;
+    align-items: center;
+    font-weight: bolder;
+    color: white;
+    display: flex;
+}
+
+.dinosaur {
+    background-color: green;
+    content: 'Dinosaur';
+}
+
+#robot {
+    background-color: red;
+    content: 'Robot';
+}
