@@ -55,7 +55,7 @@ app.after_request(after_request)
 
 # Main function
 def main() -> None:
-    app.run(config.HOST, config.PORT, debug=config.DEBUG)
+    app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG)
 
     if config.DEBUG:
         # Clean database:

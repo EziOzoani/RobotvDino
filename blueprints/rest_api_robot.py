@@ -1,6 +1,5 @@
 from database import Dinosaur, Game, Robot, db
 from flask import Blueprint, jsonify, Response, request
-import config
 import json
 
 
@@ -32,7 +31,7 @@ def get_robot() -> Response:
         if not robot:
             return jsonify({
                 'status': 'error',
-                'message': f'Robot {robot_id} not found.'
+                'message': 'Robot ' + str(robot_id) + ' not found.'
             })
 
         return jsonify({
@@ -46,11 +45,11 @@ def get_robot() -> Response:
 @api.route('/api/robot/move', methods=['GET'])
 def move_robot() -> Response:
     if request.method.lower() == 'get':
-        allowed_params = ['id', 'direction']
+        required_params = ['id', 'direction']
         params = [*request.args.keys()]
 
-        # If there is a missing parameter, it returns an error:
-        if any([not param in params for param in allowed_params]):
+        # If there is a missing parameter, it returns an error: 
+        if any([not param in params for param in required_params]):
             return jsonify({
                 'status': 'error',
                 'message': 'You must indicate the id of the robot, and the direction to which it will move as parameters.',
@@ -62,7 +61,7 @@ def move_robot() -> Response:
         if not robot:
             return jsonify({
                 'status': 'error',
-                'message': f'Robot {robot_id} not found.',
+                'message': 'Robot ' + str(robot_id) + ' not found.',
             })
 
         # Get the robot game:
@@ -72,6 +71,10 @@ def move_robot() -> Response:
         dinosaurs = json.loads(game.dinosaurs)
 
         # Change the position of the robot:
+        # Get max x and max y position:
+        max_x = game.grid_columns - 1
+        max_y = game.grid_rows - 1
+
         direction = request.args['direction']
         if direction == 'left' and robot.X > 0:
             for dinosaur in dinosaurs:
@@ -83,7 +86,7 @@ def move_robot() -> Response:
                     })
 
             robot.X -= 1
-        elif direction == 'right' and robot.X < config.GRID_COLUMNS:
+        elif direction == 'right' and robot.X < max_x:
             for dinosaur in dinosaurs:
                 if robot.X + 1 == dinosaurs[dinosaur]['X'] and \
                     robot.Y == dinosaurs[dinosaur]['Y']:
@@ -103,7 +106,7 @@ def move_robot() -> Response:
                     })
 
             robot.Y -= 1
-        elif direction == 'behind' and robot.Y < config.GRID_ROWS:
+        elif direction == 'behind' and robot.Y < max_y:
             for dinosaur in dinosaurs:
                 if robot.Y + 1 == dinosaurs[dinosaur]['Y'] and \
                     robot.X == dinosaurs[dinosaur]['X']:
@@ -147,7 +150,7 @@ def robot_attack() -> Response:
         if not robot:
             return jsonify({
                 'status': 'error',
-                'message': f'Robot {robot_id} not found.',
+                'message': 'Robot ' + str(robot_id) + ' not found.',
             })
 
         # Get game of the robot:

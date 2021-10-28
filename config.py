@@ -8,8 +8,4 @@ HOST = '0.0.0.0'
 PORT = 8000
 
 # Database configuration
-SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.getcwd()}/db.sqlite'
-
-# Game configuration
-GRID_COLUMNS = 19
-GRID_ROWS = 19
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.getcwd() + '/db.sqlite'

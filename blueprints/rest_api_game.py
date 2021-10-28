@@ -1,7 +1,6 @@
 from database import Dinosaur, Game, Robot, db
 from random import randint
 from flask import Blueprint, jsonify, Response, request
-import config
 import json
 
 
@@ -10,61 +9,155 @@ api = Blueprint(__name__, 'rest_api_game')
 
 @api.route('/api/game/create', methods=['GET'])
 def create_game() -> Response:
-    # Creating game:
-    game = Game()
-    robot = Robot(game_id=game.id, X=randint(0, config.GRID_COLUMNS), Y=randint(0, config.GRID_COLUMNS))
-    dinos = [Dinosaur(game_id=game.id, X=randint(0, config.GRID_COLUMNS), Y=randint(0, config.GRID_COLUMNS)) for i in range(5)]
+    # Getting game data:
+    try:
+        number_dinosaurs = request.args['num_dinos']
+        grid_columns = request.args['grid_cols']
+        grid_rows = request.args['grid_rows']
+        dinos_pos = request.args['dinos_pos']
+        robot_pos = request.args['robot_pos']
+    except KeyError as error:
+        return jsonify({
+            'status': 'error',
+            'message': '''
+You must indicate the number of dinosaurs (num_dinos), dinosaurs positions in (dinos_pos: JSON format), 
+grid columns (grid_cols), grid rows (grid_rows) and robot position (robot_pos: JSON format).
+            '''.strip(),
+        })
 
-    # Add new objects to the database session
-    for dino in dinos:
-        db.session.add(dino)
+    # Check that the type of the data provided is valid:
+    try:
+        number_dinosaurs = int(number_dinosaurs)
+    except ValueError:
+        return jsonify({
+            'status': 'error',
+            'message': 'The number of dinosaurs must be an integer number.',
+        })
 
-    db.session.add(game)
-    db.session.add(robot)
+    try:
+        grid_columns = int(grid_columns)
+    except ValueError:
+        return jsonify({
+            'status': 'error',
+            'message': 'The number of grid columns must be an integer number.',
+        })
 
-    # Save objects:
-    db.session.commit()
+    try:
+        grid_rows = int(grid_rows)
+    except ValueError:
+        return jsonify({
+            'status': 'error',
+            'message': 'The number of grid rows must be an integer number.',
+        })
 
+    try:
+        dinos_pos = json.loads(dinos_pos)
+    except json.decoder.JSONDecodeError as error:
+        return jsonify({
+            'status': 'error',
+            'message': 'An error ocurred while decoding dinosaurs JSON. ' + str(error),
+        })
 
-    # Cheack that two or more entities (robots or dinosaur) are not in the same position:
-    dino_positions = []
-    for dino in dinos:
-        while any([dino.X in position and dino.Y in position for position in dino_positions]):
-            dino.X = randint(0, config.GRID_COLUMNS)
-            dino.Y = randint(0, config.GRID_ROWS)
+    try:
+        robot_pos = json.loads(robot_pos)
+    except json.decoder.JSONDecodeError as error:
+        return jsonify({
+            'status': 'error',
+            'message': 'An error ocurred while decoding robot position JSON. ' + str(error),
+        })
 
-        dino_positions.append((dino.X, dino.Y))
+    # Check that the value of the data is valid:
+    if grid_columns < 10 or grid_columns > 50:
+        return jsonify({
+            'status': 'error',
+            'message': 'Grid columns must be greater than 9 and lower than 51.',
+        })
 
-    # The robot and a dinosaur can not be in the same position
-    while any([robot.X in position and robot.Y in position for position in dino_positions]):
-        robot.X = randint(0, config.GRID_COLUMNS)
-        robot.Y = randint(0, config.GRID_ROWS)
+    if grid_rows < 10 or grid_rows > 50:
+        return jsonify({
+            'status': 'error',
+            'message': 'Grid rows must be greater than 9 and lower than 51.',
+        })
 
-    print(dino_positions + [(robot.X, robot.Y)])
+    if number_dinosaurs < 1 or number_dinosaurs > grid_columns * grid_rows // 2:
+        return jsonify({
+            'status': 'error',
+            'message': 'Number of dinosaurs must be greater than 0 and lower than ' +
+            str(grid_columns * grid_rows // 2 + 1) +
+            '.',
+        })
 
-    # Set game robot id and game dinosaur:
-    game.robot_id = robot.id
-    game.dinosaurs = json.dumps({
-        dino.id: {
-            "X": dino.X,
-            "Y": dino.Y,
-        } for dino in dinos
-    })
+    # If length of dinos positions list is not equal to number of dinosaurs:
+    if len(dinos_pos) != number_dinosaurs:
+        return jsonify({
+            'status': 'error',
+            'message': 'Dinosaurs positions array lenght has to be equal to num_dinos.',
+        })
+    for dino_pos in dinos_pos:
+        if dino_pos[0] >= grid_columns or dino_pos[0] < 0:
+            return jsonify({
+                'status': 'error',
+                'message': 'Dinosaurs position column must be an integer number between 0 and ' +
+                str(grid_columns - 1) +
+                '.',
+            })
+        if dino_pos[1] >= grid_rows or dino_pos[1] < 0:
+            return jsonify({
+                'status': 'error',
+                'message': 'Dinosaurs position row must be an integer number between 0 and ' +
+                str(grid_rows - 1) +
+                '.',
+            })
 
-    # Set robot game id:
-    robot.game_id = game.id
+    # If robot position is lower than 2, the robot_pos list is not complete.
+    # It must have 2 elements (X and Y).
+    if len(robot_pos) < 2:
+        return jsonify({
+            'status': 'error',
+            'message': 'Robot position argument must be a list containing the row and column where the robot will be placed.',
+        })
+    if robot_pos[0] >= grid_columns or robot_pos[0] < 0:
+        return jsonify({
+            'status': 'error',
+            'message': 'Robot position column must be an integer number between 0 and ' +
+            str(grid_columns - 1) +
+            '.',
+        })
+    if robot_pos[1] >= grid_rows or robot_pos[1] < 0:
+        return jsonify({
+            'status': 'error',
+            'message': 'Robot position row must be an integer number between 0 and ' +
+            str(grid_rows - 1) +
+            '.',
+        })
 
-    # Set dinosaurs game id:
-    for dino in dinos:
-        dino.game_id = game.id
+    # Check dinos positions are not repeated:
+    for index, dino_pos in enumerate(dinos_pos, 0):
+        if dinos_pos.count(dino_pos) > 1:
+            return jsonify({
+                'status': 'error',
+                'message': 'Error at dinosaurs positions array (Index: ' +
+                str(index) +
+                '). Two dinosaurs can not be in the same place.',
+            })
+    # Check robot position is not in dinos positions:
+    if robot_pos in dinos_pos:
+        return jsonify({
+            'status': 'error',
+            'message': 'Two entities (Robot or dinosaurs) can not be in the same place.',
+        })
 
-    # Save changes:
-    db.session.commit()
+    # Create game:
+    game = Game.create_game(grid_cols=grid_columns, grid_rows=grid_rows,
+                            num_dinos=number_dinosaurs, dinos_pos=dinos_pos, robot_pos=robot_pos)
 
     return jsonify({
-        "id": game.id,
-        "robot_id": game.robot_id,
-        "dinosaurs": game.dinosaurs,
+        'status': 'success',
+        'id': game.id,
+        'robot_id': game.robot_id,
+        'dinosaurs': game.dinosaurs,
+        'grid_columns': grid_columns,
+        'grid_rows': grid_rows,
     })
 
 
@@ -74,10 +167,9 @@ def get_game() -> Response:
         game_id = None
 
         try:
-            # Try to get game id or game robot id from request arguments:
-            for param in ['id', 'robot_id']:
-                if param in [*request.args.keys()]:
-                    game_id = request.args[param]
+            # Try to get game id from request arguments:
+            if 'id' in [*request.args.keys()]:
+                game_id = request.args['id']
 
             if game_id is None:
                 raise KeyError
@@ -92,29 +184,26 @@ def get_game() -> Response:
         if not game:
             return jsonify({
                 'status': 'error',
-                'message': f'Game {game_id} not found.'
+                'message': 'Game ' + str(game_id) + ' not found.'
             })
 
         return jsonify({
-            "id": game.id,
-            "robot_id": game.robot_id,
-            "dinosaurs": game.dinosaurs,
+            'status': 'success',
+            'id': game.id,
+            'robot_id': game.robot_id,
+            'dinosaurs': game.dinosaurs,
+            'grid_columns': game.grid_columns,
+            'grid_rows': game.grid_rows,
         })
 
 
 @api.route('/api/game/delete', methods=['GET'])
 def delete_game() -> Response:
     if request.method.lower() == 'get':
-        game_id = None
-
         try:
-            # Try to find game id or robot id in request arguments:
-            for param in ['id', 'robot_id']:
-                if param in [*request.args.keys()]:
-                    game_id = request.args[param]
-
-            if game_id is None:
-                raise KeyError
+            # Try to find the id of the game in request arguments:
+            if 'id' in [*request.args.keys()]:
+                game_id = request.args['id']
 
         except KeyError:
             return jsonify({
@@ -122,19 +211,29 @@ def delete_game() -> Response:
                 'message': 'You must indicate the id of the game as a parameter.',
             })
 
-        # Try to get the game by id:
+        # Try to get the game by its id:
         game = Game.query.get(game_id)
         if not game:
             return jsonify({
                 'status': 'error',
-                'message': f'Game {game_id} not found.'
+                'message': 'Game ' + str(game_id) + ' not found.'
             })
 
-        # Delete instance:
+        # Get game dinosaurs:
+        dinosaurs = json.loads(game.dinosaurs)
+
+        # Delete game instance and dependent instances:
+        # Delete dinosaurs:
+        for dinosaur in dinosaurs:
+            db.session.delete(Dinosaur.query.get(dinosaur))
+        # Delete game robot:
+        db.session.delete(Robot.query.get(game.robot_id))
+        # Delete game:
         db.session.delete(game)
+        # Save changes:
         db.session.commit()
 
         return jsonify({
             'status': 'success',
-            'message': f'The Game {game_id} has been deleted successfully.',
+            'message': 'The Game ' + str(game_id) + ' has been deleted successfully.',
         })

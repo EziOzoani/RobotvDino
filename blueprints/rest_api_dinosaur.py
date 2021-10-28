@@ -30,7 +30,7 @@ def api_dinosaur() -> Response:
         if not dinosaur:
             return jsonify({
                 'status': 'error',
-                'message': f'Dinosaur {dinosaur_id} not found.'
+                'message': 'Dinosaur ' + str(dinosaur_id) + ' not found.'
             })
 
         return jsonify({
@@ -65,14 +65,14 @@ def get_dinosaur() -> Response:
         if not dinosaur:
             return jsonify({
                 'status': 'error',
-                'message': f'Dinosaur {dinosaur_id} not found.'
+                'message': 'Dinosaur ' + str(dinosaur_id) + ' not found.'
             })
 
         # Get game of the dinosaur:
         game = Game.query.get(dinosaur.game_id)
 
         # Delete dinosaur from game dinosaurs json:
-        game_dinosaurs: dict = json.loads(game.dinosaurs)
+        game_dinosaurs = json.loads(game.dinosaurs)
         game_dinosaurs.pop(str(dinosaur.id))
         game.dinosaurs = json.dumps(game_dinosaurs)
 
@@ -84,5 +84,5 @@ def get_dinosaur() -> Response:
 
         return jsonify({
             'status': 'success',
-            'message': f'Dinosaur {dinosaur_id} has been deleted successfully.'
+            'message': 'Dinosaur ' + str(dinosaur_id) + ' has been deleted successfully.'
         })

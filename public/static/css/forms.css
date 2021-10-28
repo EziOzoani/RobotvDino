@@ -1,0 +1,30 @@
+.form-control {
+    flex-direction: column;
+    display: flex;
+    gap: 5px;
+}
+.form-control input,
+.form-control button {
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    outline: none;
+    border: none;
+    height: 2em;
+}
+.form-control input:hover,
+.form-control button:hover {
+    background-color: #d0d0d0;
+}
+.form-control input {
+    text-indent: 5px;
+    width: 100%;
+}
+.form-control button {
+    cursor: pointer;
+}
+.form-control button[type=submit],
+.form-control button.primary {
+    background-color: #2f78ff;
+    font-weight: bold;
+    color: white;
+}

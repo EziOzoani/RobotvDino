@@ -1,3 +1,4 @@
+# flask-socketio has caused troubles
 flask-sqlalchemy
 flask_cors
 flask
